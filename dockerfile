@@ -1,4 +1,4 @@
-FROM maven:3.9.0-eclipse-temurin-17-alpine
+FROM maven:3.9.2-eclipse-temurin-20-alpine
 RUN mkdir ./feed && mkdir /root/.m2
 COPY . /feed
 WORKDIR /feed

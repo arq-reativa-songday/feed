@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import br.ufrn.imd.feed.client.SongDayClient;
+import br.ufrn.imd.feed.client.SongsClient;
 import br.ufrn.imd.feed.dto.PostDto;
 import br.ufrn.imd.feed.dto.SearchPostsCountDto;
 import br.ufrn.imd.feed.dto.SearchPostsDto;
@@ -22,6 +23,9 @@ import feign.FeignException;
 public class FeedService {
     @Autowired
     private SongDayClient songDayClient;
+
+    @Autowired
+    private SongsClient songsClient;
 
     public Feed generateFeed(String username, Date lastFeedDate, int offset, int limit) {
         // buscar pessoas que o usuário segue
@@ -41,6 +45,8 @@ public class FeedService {
             newsPosts = findPostsCount(new SearchPostsCountDto(lastFeedDate, updatedAt, followees));
         }
 
+        Long songsCount = this.countSongs();
+
         // montar feed
         return Feed.builder()
                 .username(username)
@@ -50,6 +56,7 @@ public class FeedService {
                 .limit(limit)
                 .size(posts.size())
                 .newsPosts(newsPosts)
+                .totalSongs(songsCount)
                 .build();
     }
 
@@ -100,6 +107,18 @@ public class FeedService {
                 throw new ServicesCommunicationException(
                         "Erro durante a comunicação com SongDay para recuperar usuários seguidos");
             }
+        }
+    }
+
+    private Long countSongs() {
+        try {
+            ResponseEntity<Long> response = songsClient.count();
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                return 0L;
+            }
+            return response.getBody();
+        } catch (FeignException e) {
+            return 0L;
         }
     }
 }
