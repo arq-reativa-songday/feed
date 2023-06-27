@@ -14,7 +14,7 @@ import br.ufrn.imd.feed.dto.SearchPostsCountDto;
 import br.ufrn.imd.feed.dto.SearchPostsDto;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 
-@FeignClient(name = "songday-service", url = "${songday.api.address}")
+@FeignClient(name = "songday")
 public interface SongDayClient {
     @GetMapping(value = "/users/username/{username}/followees")
     ResponseEntity<Set<String>> findFollowees(@PathVariable String username);
