@@ -69,7 +69,8 @@ public class FeedService {
             return response.getBody();
         } catch (FeignException e) {
             if (e.status() == 404) {
-                throw new NotFoundException(e.getLocalizedMessage());
+                // throw new NotFoundException(e.getLocalizedMessage());
+                return Collections.emptyList();
             } else {
                 e.printStackTrace();
                 throw new ServicesCommunicationException(
