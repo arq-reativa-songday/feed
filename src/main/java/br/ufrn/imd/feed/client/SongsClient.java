@@ -1,11 +1,12 @@
 package br.ufrn.imd.feed.client;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.service.annotation.GetExchange;
+import org.springframework.web.service.annotation.HttpExchange;
 
-@FeignClient(name = "songs")
+import reactor.core.publisher.Mono;
+
+@HttpExchange("songs")
 public interface SongsClient {
-    @GetMapping(value = "/songs/count")
-    ResponseEntity<Long> count();
+    @GetExchange(value = "/songs/count")
+    public Mono<Long> count();
 }

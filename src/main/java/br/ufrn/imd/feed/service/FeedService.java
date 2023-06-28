@@ -1,12 +1,10 @@
 package br.ufrn.imd.feed.service;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import br.ufrn.imd.feed.client.SongDayClient;
@@ -14,10 +12,9 @@ import br.ufrn.imd.feed.client.SongsClient;
 import br.ufrn.imd.feed.dto.PostDto;
 import br.ufrn.imd.feed.dto.SearchPostsCountDto;
 import br.ufrn.imd.feed.dto.SearchPostsDto;
-import br.ufrn.imd.feed.exception.NotFoundException;
 import br.ufrn.imd.feed.exception.ServicesCommunicationException;
 import br.ufrn.imd.feed.model.Feed;
-import feign.FeignException;
+import reactor.core.publisher.Mono;
 
 @Service
 public class FeedService {
@@ -40,7 +37,7 @@ public class FeedService {
             updatedAt = new Date(mostRecentPostDate.getTime() + 1);
         }
 
-        Integer newsPosts = null;
+        Long newsPosts = null;
         if (lastFeedDate != null) {
             newsPosts = findPostsCount(new SearchPostsCountDto(lastFeedDate, updatedAt, followees));
         }
@@ -61,65 +58,42 @@ public class FeedService {
     }
 
     private List<PostDto> findPosts(SearchPostsDto searchPostsDto) {
-        try {
-            ResponseEntity<List<PostDto>> response = songDayClient.findPosts(searchPostsDto);
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return Collections.emptyList();
-            }
-            return response.getBody();
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                // throw new NotFoundException(e.getLocalizedMessage());
-                return Collections.emptyList();
-            } else {
-                e.printStackTrace();
-                throw new ServicesCommunicationException(
-                        "Erro durante a comunicação com SongDay para recuperar publicações");
-            }
-        }
+        return songDayClient.getAll(searchPostsDto)
+                .onErrorResume(throwable -> {
+                    if (throwable.getLocalizedMessage().contains("404 Not Found")) {
+                        return Mono.empty();
+                    }
+                    return Mono.error(new ServicesCommunicationException(
+                            "Erro durante a comunicação com SongDay para recuperar as publicações: "
+                                    + throwable.getLocalizedMessage()));
+                })
+                .collectList().block();
     }
 
-    private Integer findPostsCount(SearchPostsCountDto searchPostsCountDto) {
-        try {
-            ResponseEntity<Integer> response = songDayClient.findPostsCount(searchPostsCountDto);
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return 0;
-            }
-            return response.getBody();
-        } catch (FeignException e) {
-            e.printStackTrace();
-            throw new ServicesCommunicationException(
-                    "Erro durante a comunicação com SongDay a quantidade de novas publicações");
-        }
+    private Long findPostsCount(SearchPostsCountDto searchPostsCountDto) {
+        return songDayClient.searchPostsCount(searchPostsCountDto)
+                .onErrorResume(throwable -> {
+                    return Mono.error(new ServicesCommunicationException(
+                            "Erro durante a comunicação com SongDay para recuperar a quantidade de novas publicações: "
+                                    + throwable.getLocalizedMessage()));
+                })
+                .block();
     }
 
     private Set<String> findFollowees(String username) {
-        try {
-            ResponseEntity<Set<String>> response = songDayClient.findFollowees(username);
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return Collections.emptySet();
-            }
-            return response.getBody();
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new NotFoundException(e.getLocalizedMessage());
-            } else {
-                e.printStackTrace();
-                throw new ServicesCommunicationException(
-                        "Erro durante a comunicação com SongDay para recuperar usuários seguidos");
-            }
-        }
+        return songDayClient.getFolloweesByUsername(username)
+                .onErrorResume(throwable -> {
+                    return Mono.error(new ServicesCommunicationException(
+                            "Erro durante a comunicação com SongDay para recuperar os usuários seguidos: "
+                                    + throwable.getLocalizedMessage()));
+                })
+                .block();
     }
 
     private Long countSongs() {
-        try {
-            ResponseEntity<Long> response = songsClient.count();
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return 0L;
-            }
-            return response.getBody();
-        } catch (FeignException e) {
-            return 0L;
-        }
+        return songsClient.count()
+                .onErrorResume(throwable -> {
+                    return Mono.just(0L);
+                }).block();
     }
 }
