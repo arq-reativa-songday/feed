@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.ufrn.imd.feed.dto.PostDto;
 import br.ufrn.imd.feed.model.Feed;
-import br.ufrn.imd.feed.service.FeedService;
+import br.ufrn.imd.feed.service.FeedServiceWrapper;
 
 @RestController
 public class FeedController {
     @Autowired
-    private FeedService feedService;
+    private FeedServiceWrapper feedService;
 
     @GetMapping("/{username}")
     public ResponseEntity<Feed> getFeed(
