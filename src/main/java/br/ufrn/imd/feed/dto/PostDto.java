@@ -12,6 +12,7 @@ public class PostDto {
     private Date createdAt;
     private String username;
     private String songId;
+    private SongDto song;
     private String text;
     private int likes;
     private int comments;
