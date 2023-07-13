@@ -5,6 +5,10 @@ spring:
     active: dev
   config:
     import: optional:configserver:http://localhost:8888
+api:
+  cached: 'false'
+  cache:
+    local: 'false'
 
 server:
   port: 8083
